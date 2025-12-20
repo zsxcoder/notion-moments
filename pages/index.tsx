@@ -32,7 +32,7 @@ const TWIKOO_URL = process.env.NEXT_PUBLIC_TWIKOO_URL || '';
 const BLOG_URL = process.env.NEXT_PUBLIC_BLOG_URL || 'https://blog.lusyoe.com';
 
 // 回到顶部按钮组件
-const BackToTopIcon: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+const BackToTopIcon: React.FC<{ onClick: () => void, show: boolean }> = ({ onClick, show }) => (
   <button
     onClick={onClick}
     style={{
@@ -53,16 +53,16 @@ const BackToTopIcon: React.FC<{ onClick: () => void }> = ({ onClick }) => (
       transition: 'all 0.3s ease',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       zIndex: 100,
-      opacity: showBackToTop ? 1 : 0,
-      visibility: showBackToTop ? 'visible' : 'hidden',
-      transform: showBackToTop ? 'scale(1)' : 'scale(0.8)'
+      opacity: show ? 1 : 0,
+      visibility: show ? 'visible' : 'hidden',
+      transform: show ? 'scale(1)' : 'scale(0.8)'
     }}
     onMouseOver={(e) => {
-      e.currentTarget.style.transform = showBackToTop ? 'scale(1.1)' : 'scale(0.8)';
+      e.currentTarget.style.transform = show ? 'scale(1.1)' : 'scale(0.8)';
       e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     }}
     onMouseOut={(e) => {
-      e.currentTarget.style.transform = showBackToTop ? 'scale(1)' : 'scale(0.8)';
+      e.currentTarget.style.transform = show ? 'scale(1)' : 'scale(0.8)';
       e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
     }}
     aria-label="回到顶部"
@@ -123,7 +123,6 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
   // 主题状态
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [now, setNow] = useState(Date.now());
-  const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60 * 1000);
@@ -193,6 +192,8 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
     }
   }, [activeCommentId]);
 
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
   // 手动切换主题
   const toggleTheme = () => {
     setTheme(prevTheme => {
@@ -248,7 +249,7 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
   return (
     <div className={`main-container ${theme}-theme`}>
       <ThemeToggleIcon theme={theme} onClick={toggleTheme} />
-      <BackToTopIcon onClick={scrollToTop} />
+      <BackToTopIcon onClick={scrollToTop} show={showBackToTop} />
       <h1 style={{ textAlign: 'center' }} className="main-title">日常瞬间</h1>
       <div>
         {moments.map(moment => {
