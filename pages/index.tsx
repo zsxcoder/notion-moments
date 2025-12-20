@@ -38,7 +38,8 @@ const ThemeToggleIcon: React.FC<{ theme: 'light' | 'dark', onClick: () => void }
     style={{
       position: 'absolute',
       right: 20,
-      top: 20,
+      top: '50%',
+      transform: 'translateY(-50%)',
       width: 40,
       height: 40,
       borderRadius: '50%',
@@ -55,11 +56,11 @@ const ThemeToggleIcon: React.FC<{ theme: 'light' | 'dark', onClick: () => void }
       zIndex: 100
     }}
     onMouseOver={(e) => {
-      e.currentTarget.style.transform = 'scale(1.1)';
+      e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
       e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     }}
     onMouseOut={(e) => {
-      e.currentTarget.style.transform = 'scale(1)';
+      e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
       e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
     }}
     aria-label="切换明暗模式"
