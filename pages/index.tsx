@@ -31,6 +31,43 @@ interface MomentsPageProps {
 const TWIKOO_URL = process.env.NEXT_PUBLIC_TWIKOO_URL || '';
 const BLOG_URL = process.env.NEXT_PUBLIC_BLOG_URL || 'https://blog.lusyoe.com';
 
+// 明暗模式切换图标组件
+const ThemeToggleIcon: React.FC<{ theme: 'light' | 'dark', onClick: () => void }> = ({ theme, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      position: 'absolute',
+      right: 20,
+      top: 20,
+      width: 40,
+      height: 40,
+      borderRadius: '50%',
+      border: 'none',
+      background: theme === 'light' ? '#f0f0f0' : '#333',
+      color: theme === 'light' ? '#666' : '#fff',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 18,
+      transition: 'all 0.3s ease',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      zIndex: 100
+    }}
+    onMouseOver={(e) => {
+      e.currentTarget.style.transform = 'scale(1.1)';
+      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    }}
+    onMouseOut={(e) => {
+      e.currentTarget.style.transform = 'scale(1)';
+      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+    }}
+    aria-label="切换明暗模式"
+  >
+    {theme === 'light' ? '🌙' : '☀️'}
+  </button>
+);
+
 const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const twikooInitedRef = useRef<string | null>(null);
@@ -43,7 +80,7 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
   const [zoomImgList, setZoomImgList] = useState<string[]>([]);
   const [showOriginal, setShowOriginal] = useState(false);
   const [loadingOriginal, setLoadingOriginal] = useState(false);
-  // 新增主题状态
+  // 主题状态
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [now, setNow] = useState(Date.now());
 
@@ -115,13 +152,28 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
     }
   }, [activeCommentId]);
 
-  // 新增：根据时间自动切换主题
+  // 手动切换主题
+  const toggleTheme = () => {
+    setTheme(prevTheme => {
+      const newTheme = prevTheme === 'light' ? 'dark' : 'light';
+      // 保存用户偏好到localStorage
+      localStorage.setItem('theme-preference', newTheme);
+      return newTheme;
+    });
+  };
+
+  // 初始化主题：优先使用用户偏好，其次根据时间
   useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour >= 18 || hour < 6) {
-      setTheme('dark');
+    const savedTheme = localStorage.getItem('theme-preference');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      setTheme(savedTheme);
     } else {
-      setTheme('light');
+      const hour = new Date().getHours();
+      if (hour >= 18 || hour < 6) {
+        setTheme('dark');
+      } else {
+        setTheme('light');
+      }
     }
   }, []);
 
@@ -132,6 +184,7 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
 
   return (
     <div className={`main-container ${theme}-theme`}>
+      <ThemeToggleIcon theme={theme} onClick={toggleTheme} />
       <h1 style={{ textAlign: 'center' }} className="main-title">日常瞬间</h1>
       <div>
         {moments.map(moment => {
@@ -430,11 +483,14 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
         }
         body, .main-container {
           background: #fff;
-          transition: background 0.3s;
+          transition: background 0.3s, color 0.3s;
         }
         .main-container {
           max-width: 820px;
           margin: 0 auto;
+          min-height: 100vh;
+          position: relative;
+          padding-top: 80px;
         }
         .moment-header {
           display: flex;
@@ -454,9 +510,28 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
         }
         body.dark-theme, .main-container.dark-theme {
           background: #181818 !important;
+          color: #e0e0e0 !important;
         }
         body.light-theme, .main-container.light-theme {
           background: #fff !important;
+          color: #333 !important;
+        }
+        .moment-user a {
+          color: #0070f3;
+          text-decoration: none;
+          transition: color 0.3s;
+        }
+        .moment-user a:hover {
+          color: #0051b3;
+          text-decoration: underline;
+        }
+        body.dark-theme .moment-user a,
+        .main-container.dark-theme .moment-user a {
+          color: #4da6ff;
+        }
+        body.dark-theme .moment-user a:hover,
+        .main-container.dark-theme .moment-user a:hover {
+          color: #80bfff;
         }
         .markdown-content {
         }
@@ -585,6 +660,28 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
           background: #181818;
           color: #bbbbbb;
         }
+        /* 滚动条样式适配 */
+        html::-webkit-scrollbar-thumb,
+        body::-webkit-scrollbar-thumb,
+        .main-container::-webkit-scrollbar-thumb {
+          background: #ccc;
+          border-radius: 4px;
+        }
+        html.dark-theme::-webkit-scrollbar-thumb,
+        body.dark-theme::-webkit-scrollbar-thumb,
+        .main-container.dark-theme::-webkit-scrollbar-thumb {
+          background: #555;
+        }
+        html::-webkit-scrollbar-track,
+        body::-webkit-scrollbar-track,
+        .main-container::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+        html.dark-theme::-webkit-scrollbar-track,
+        body.dark-theme::-webkit-scrollbar-track,
+        .main-container.dark-theme::-webkit-scrollbar-track {
+          background: #2a2a2a;
+        }
         .moment-title {
           font-weight: bold;
           font-size: 16px;
@@ -599,6 +696,23 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
         .main-container.dark-theme button {
           background: #232323 !important;
           border-color: #444 !important;
+          color: #e0e0e0 !important;
+        }
+        body.dark-theme .main-container button:hover,
+        .main-container.dark-theme button:hover {
+          background: #333 !important;
+          border-color: #666 !important;
+        }
+        .main-container button {
+          transition: all 0.3s ease;
+        }
+        .moment-date {
+          transition: color 0.3s;
+        }
+        body.dark-theme .moment-mood,
+        .main-container.dark-theme .moment-mood {
+          background: #333 !important;
+          color: #bbbbbb !important;
         }
         body.dark-theme .moment-title,
         .main-container.dark-theme .moment-title {
