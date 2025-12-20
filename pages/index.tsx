@@ -31,15 +31,54 @@ interface MomentsPageProps {
 const TWIKOO_URL = process.env.NEXT_PUBLIC_TWIKOO_URL || '';
 const BLOG_URL = process.env.NEXT_PUBLIC_BLOG_URL || 'https://blog.lusyoe.com';
 
+// 回到顶部按钮组件
+const BackToTopIcon: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      position: 'fixed',
+      right: 20,
+      bottom: 70,
+      width: 40,
+      height: 40,
+      borderRadius: '50%',
+      border: 'none',
+      background: '#0070f3',
+      color: '#fff',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 18,
+      transition: 'all 0.3s ease',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      zIndex: 100,
+      opacity: showBackToTop ? 1 : 0,
+      visibility: showBackToTop ? 'visible' : 'hidden',
+      transform: showBackToTop ? 'scale(1)' : 'scale(0.8)'
+    }}
+    onMouseOver={(e) => {
+      e.currentTarget.style.transform = showBackToTop ? 'scale(1.1)' : 'scale(0.8)';
+      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    }}
+    onMouseOut={(e) => {
+      e.currentTarget.style.transform = showBackToTop ? 'scale(1)' : 'scale(0.8)';
+      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+    }}
+    aria-label="回到顶部"
+  >
+    ↑
+  </button>
+);
+
 // 明暗模式切换图标组件
 const ThemeToggleIcon: React.FC<{ theme: 'light' | 'dark', onClick: () => void }> = ({ theme, onClick }) => (
   <button
     onClick={onClick}
     style={{
-      position: 'absolute',
+      position: 'fixed',
       right: 20,
-      top: '50%',
-      transform: 'translateY(-50%)',
+      bottom: 20,
       width: 40,
       height: 40,
       borderRadius: '50%',
@@ -56,11 +95,11 @@ const ThemeToggleIcon: React.FC<{ theme: 'light' | 'dark', onClick: () => void }
       zIndex: 100
     }}
     onMouseOver={(e) => {
-      e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+      e.currentTarget.style.transform = 'scale(1.1)';
       e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     }}
     onMouseOut={(e) => {
-      e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+      e.currentTarget.style.transform = 'scale(1)';
       e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
     }}
     aria-label="切换明暗模式"
@@ -84,6 +123,7 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
   // 主题状态
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [now, setNow] = useState(Date.now());
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60 * 1000);
@@ -163,6 +203,28 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
     });
   };
 
+  // 回到顶部功能
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // 监听滚动事件，控制回到顶部按钮显示
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.pageYOffset > 300) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // 初始化主题：优先使用用户偏好，其次根据时间
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme-preference');
@@ -186,6 +248,7 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
   return (
     <div className={`main-container ${theme}-theme`}>
       <ThemeToggleIcon theme={theme} onClick={toggleTheme} />
+      <BackToTopIcon onClick={scrollToTop} />
       <h1 style={{ textAlign: 'center' }} className="main-title">日常瞬间</h1>
       <div>
         {moments.map(moment => {
