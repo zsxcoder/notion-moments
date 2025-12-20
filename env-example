@@ -3,3 +3,7 @@ NOTION_DATABASE_ID=<notion-database-id>
 NEXT_PUBLIC_TWIKOO_URL=<twikoo-url>
 NEXT_PUBLIC_BLOG_URL=<blog-url>
 NOTION_DAY_RANGE=90
+
+# ISR 重验证时间（秒），默认60秒，可根据需要调整
+# 建议范围：30-300秒，太小会增加Vercel配额消耗，太大会导致更新延迟
+NEXT_PUBLIC_REVALIDATE_SECOND=60

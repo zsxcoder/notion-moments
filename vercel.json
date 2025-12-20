@@ -1,0 +1,17 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "yarn build",
+  "devCommand": "yarn dev",
+  "installCommand": "yarn install",
+  "functions": {
+    "pages/**/*.tsx": {
+      "runtime": "vercel-nodejs@latest"
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ]
+}
