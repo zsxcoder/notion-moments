@@ -6,7 +6,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faComment } from '@fortawesome/free-solid-svg-icons';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
 import { ReactNode } from 'react';
+import 'highlight.js/styles/github.css';
+import 'highlight.js/styles/github-dark.css';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -23,6 +29,7 @@ interface Moment {
   icon?: string;
   content?: string;
   images?: string[]; // 新增图片数组字段
+  videos?: string[]; // 新增视频数组字段
 }
 
 interface MomentsPageProps {
@@ -73,41 +80,57 @@ const BackToTopIcon: React.FC<{ onClick: () => void, show: boolean }> = ({ onCli
 );
 
 // 明暗模式切换图标组件
-const ThemeToggleIcon: React.FC<{ theme: 'light' | 'dark', onClick: () => void }> = ({ theme, onClick }) => (
-  <button
-    onClick={onClick}
-    style={{
+const ThemeToggleIcon: React.FC<{ theme: 'light' | 'dark' | null, onClick: () => void }> = ({ theme, onClick }) => {
+  // 如果主题为null，显示一个占位符
+  if (!theme) {
+    return <div style={{
       position: 'fixed',
       right: 20,
       bottom: 20,
       width: 40,
       height: 40,
       borderRadius: '50%',
-      border: 'none',
-      background: theme === 'light' ? '#f0f0f0' : '#333',
-      color: theme === 'light' ? '#666' : '#fff',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 18,
-      transition: 'all 0.3s ease',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      background: '#f0f0f0',
       zIndex: 100
-    }}
-    onMouseOver={(e) => {
-      e.currentTarget.style.transform = 'scale(1.1)';
-      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    }}
-    onMouseOut={(e) => {
-      e.currentTarget.style.transform = 'scale(1)';
-      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-    }}
-    aria-label="切换明暗模式"
-  >
-    {theme === 'light' ? '🌙' : '☀️'}
-  </button>
-);
+    }} />;
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        position: 'fixed',
+        right: 20,
+        bottom: 20,
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        border: 'none',
+        background: theme === 'light' ? '#f0f0f0' : '#333',
+        color: theme === 'light' ? '#666' : '#fff',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 18,
+        transition: 'all 0.3s ease',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        zIndex: 100
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.transform = 'scale(1.1)';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+      }}
+      aria-label="切换明暗模式"
+    >
+      {theme === 'light' ? '🌙' : '☀️'}
+    </button>
+  );
+};
 
 const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
@@ -121,11 +144,15 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
   const [zoomImgList, setZoomImgList] = useState<string[]>([]);
   const [showOriginal, setShowOriginal] = useState(false);
   const [loadingOriginal, setLoadingOriginal] = useState(false);
-  // 主题状态
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [now, setNow] = useState(Date.now());
+  // 主题状态 - 初始值设为null，避免hydration不匹配
+  const [theme, setTheme] = useState<'light' | 'dark' | null>(null);
+  const [now, setNow] = useState(null);
+  // 视频错误状态
+  const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({});
 
+  // 使用useEffect避免服务器渲染时不匹配
   useEffect(() => {
+    setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 60 * 1000);
     return () => clearInterval(timer);
   }, []);
@@ -197,12 +224,17 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
 
   // 手动切换主题
   const toggleTheme = () => {
-    setTheme(prevTheme => {
-      const newTheme = prevTheme === 'light' ? 'dark' : 'light';
-      // 保存用户偏好到localStorage
-      localStorage.setItem('theme-preference', newTheme);
-      return newTheme;
-    });
+    // 只在客户端执行，避免hydration不匹配
+    if (typeof window !== 'undefined') {
+      setTheme(prevTheme => {
+        // 处理null值的情况
+        const currentTheme = prevTheme || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        // 保存用户偏好到localStorage
+        localStorage.setItem('theme-preference', newTheme);
+        return newTheme;
+      });
+    }
   };
 
   // 回到顶部功能
@@ -229,23 +261,40 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
 
   // 初始化主题：优先使用用户偏好，其次根据时间
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme-preference');
-    if (savedTheme === 'light' || savedTheme === 'dark') {
-      setTheme(savedTheme);
-    } else {
-      const hour = new Date().getHours();
-      if (hour >= 18 || hour < 6) {
-        setTheme('dark');
+    // 只在客户端执行，避免hydration不匹配
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme-preference');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        setTheme(savedTheme);
       } else {
-        setTheme('light');
+        const hour = new Date().getHours();
+        if (hour >= 18 || hour < 6) {
+          setTheme('dark');
+        } else {
+          setTheme('light');
+        }
       }
     }
   }, []);
 
   useEffect(() => {
-    document.body.classList.toggle('dark-theme', theme === 'dark');
-    document.body.classList.toggle('light-theme', theme === 'light');
+    // 只在客户端执行，且主题已确定时才更新样式
+    if (typeof window !== 'undefined' && theme) {
+      document.body.classList.toggle('dark-theme', theme === 'dark');
+      document.body.classList.toggle('light-theme', theme === 'light');
+    }
   }, [theme]);
+
+  // 如果主题还未确定，先渲染一个简单的占位符
+  if (!theme) {
+    return (
+      <div className="main-container">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          加载中...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`main-container ${theme}-theme`}>
@@ -289,7 +338,58 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
               )}
               {moment.content && (
                 <div style={{ margin: '8px 0', color: '#444', fontSize: 15 }} className="markdown-content">
-                  <ReactMarkdown>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight, rehypeRaw, rehypeSanitize]}
+                    components={{
+                      // 自定义组件渲染
+                      // @ts-ignore - 忽略 inline 属性的类型错误
+                      code: ({ node, inline, className, children, ...props }: any) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        return !inline && match ? (
+                          <pre>
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          </pre>
+                        ) : (
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
+                      // 自定义表格渲染
+                      table: ({ children }) => (
+                        <div style={{ overflowX: 'auto', margin: '12px 0' }}>
+                          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                            {children}
+                          </table>
+                        </div>
+                      ),
+                      th: ({ children }) => (
+                        <th
+                          style={{
+                            border: '1px solid #ddd',
+                            padding: '8px 12px',
+                            textAlign: 'left',
+                            backgroundColor: '#f6f8fa',
+                          }}
+                        >
+                          {children}
+                        </th>
+                      ),
+                      td: ({ children }) => (
+                        <td
+                          style={{
+                            border: '1px solid #ddd',
+                            padding: '8px 12px',
+                          }}
+                        >
+                          {children}
+                        </td>
+                      ),
+                    }}
+                  >
                     {moment.content}
                   </ReactMarkdown>
                   {/* 新增：渲染图片数组，每行4张 */}
@@ -321,6 +421,126 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
                           ))}
                         </div>
                       ))}
+                    </div>
+                  )}
+                  
+                  {/* 渲染视频数组 */}
+                  {moment.videos && moment.videos.length > 0 && (
+                    <div style={{ margin: '12px 0' }}>
+                      {moment.videos.map((url, idx) => {
+                        // 检查是否是B站视频链接
+                        const isBilibili = url.includes('bilibili.com/video/');
+                        let videoId = '';
+                        
+                        if (isBilibili) {
+                          // 提取B站视频ID (BV号)
+                          const bvMatch = url.match(/BV[0-9A-Za-z]+/);
+                          videoId = bvMatch ? bvMatch[0] : '';
+                        }
+                        
+                        return (
+                          <div key={url} style={{ marginBottom: 12 }}>
+                            {isBilibili && videoId ? (
+                              // B站视频使用iframe嵌入
+                              <div style={{ position: 'relative' }}>
+                                <iframe
+                                  src={`https://player.bilibili.com/player.html?bvid=${videoId}&autoplay=false`}
+                                  scrolling="no"
+                                  frameBorder="no"
+                                  allowFullScreen={true}
+                                  style={{
+                                    width: '100%',
+                                    height: '480px',
+                                    maxWidth: '100%',
+                                    borderRadius: 8,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                  }}
+                                  onError={(e) => {
+                                    console.error('B站视频加载失败:', url, e);
+                                    setVideoErrors(prev => ({ ...prev, [url]: true }));
+                                  }}
+                                />
+                                {videoErrors[url] && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '480px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backgroundColor: 'rgba(0,0,0,0.7)',
+                                    color: 'white',
+                                    borderRadius: 8,
+                                    flexDirection: 'column',
+                                    gap: 10
+                                  }}>
+                                    <div>视频加载失败</div>
+                                    <a 
+                                      href={url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#0070f3', textDecoration: 'underline' }}
+                                    >
+                                      在新窗口中打开
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              // 其他视频使用原生video标签
+                              <div style={{ position: 'relative' }}>
+                                <video
+                                  key={url}
+                                  src={url}
+                                  controls={true}
+                                  preload="metadata" // 只加载元数据，减少网络请求
+                                  onError={(e) => {
+                                    console.error('视频加载失败:', url, e);
+                                    setVideoErrors(prev => ({ ...prev, [url]: true }));
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    maxWidth: '100%',
+                                    borderRadius: 8,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                  }}
+                                >
+                                  您的浏览器不支持视频播放
+                                </video>
+                                {videoErrors[url] && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backgroundColor: 'rgba(0,0,0,0.7)',
+                                    color: 'white',
+                                    borderRadius: 8,
+                                    flexDirection: 'column',
+                                    gap: 10
+                                  }}>
+                                    <div>视频加载失败</div>
+                                    <a 
+                                      href={url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#0070f3', textDecoration: 'underline' }}
+                                    >
+                                      在新窗口中打开
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   {/* 遮罩层和放大图片 */}
@@ -641,6 +861,63 @@ const MomentsPage: React.FC<MomentsPageProps> = ({ moments }) => {
         .markdown-content ol,
         .markdown-content hr {
           margin-bottom: 0.4em;
+        }
+        /* Markdown 代码高亮样式 */
+        .markdown-content pre {
+          background: #f6f8fa;
+          border-radius: 6px;
+          padding: 12px;
+          overflow: auto;
+          margin-bottom: 1em;
+        }
+        .markdown-content code {
+          background: rgba(175, 184, 193, 0.2);
+          padding: 0.2em 0.4em;
+          border-radius: 3px;
+          font-size: 85%;
+        }
+        .markdown-content pre code {
+          background: transparent;
+          padding: 0;
+          font-size: 100%;
+        }
+        .markdown-content table {
+          border-collapse: collapse;
+          width: 100%;
+          margin-bottom: 1em;
+        }
+        .markdown-content th,
+        .markdown-content td {
+          border: 1px solid #ddd;
+          padding: 8px 12px;
+        }
+        .markdown-content th {
+          background-color: #f6f8fa;
+        }
+        /* 暗色模式下的 Markdown 样式 */
+        body.dark-theme .markdown-content pre,
+        .main-container.dark-theme .markdown-content pre {
+          background: #2d2d2d;
+        }
+        body.dark-theme .markdown-content code,
+        .main-container.dark-theme .markdown-content code {
+          background: rgba(110, 118, 129, 0.4);
+          color: #e6edf3;
+        }
+        body.dark-theme .markdown-content th,
+        .main-container.dark-theme .markdown-content th {
+          background-color: #2d3748;
+        }
+        body.dark-theme .markdown-content th,
+        body.dark-theme .markdown-content td,
+        .main-container.dark-theme .markdown-content th,
+        .main-container.dark-theme .markdown-content td {
+          border-color: #4a5568;
+        }
+        body.dark-theme .markdown-content blockquote,
+        .main-container.dark-theme .markdown-content blockquote {
+          color: #a0aec0;
+          border-left-color: #4a5568;
         }
         @media (max-width: 600px) {
           .main-container {

@@ -14,5 +14,18 @@ export const MOMENTS_CONFIG = {
       background: '#f5f5f5',
       marginRight: 6
     }
+  },
+  // Markdown 配置
+  markdown: {
+    // 摘要长度
+    summaryLength: 300,
+    // 短摘要长度
+    shortLength: 100,
+    // 是否在 JSON 中包含渲染后的文本
+    includeRendered: true,
+    // 是否检测 Markdown 元素
+    detectElements: true,
+    // 是否保留原始 Markdown
+    keepRaw: true
   }
 };

@@ -1,13 +1,13 @@
-// pages/recent-moments.json.tsx
 import { GetStaticProps } from 'next';
-import { getMoments } from '../lib/notion';
-import { MOMENTS_CONFIG } from '../lib/config';
+import { getMoments } from '../../lib/notion';
 
-interface RecentMoment {
-  logo: string;
+interface Moment {
+  id: string;
   title: string;
+  username: string;
   date: string;
-  mood: string;
+  mood?: string;
+  icon?: string;
   content?: string;
   images?: string[];
   videos?: string[]; // 新增视频数组字段
@@ -15,35 +15,39 @@ interface RecentMoment {
 
 interface RecentMomentsData {
   success: boolean;
-  data: RecentMoment[];
+  data: Moment[];
   count: number;
   generatedAt: string;
   error?: string;
   message?: string;
 }
 
-/* 这个页面会被 Next.js 打成
- *   ├─ .next/server/pages/recent-moments.json
- *   └─ 访问路径 /recent-moments.json
- * 由于用了 ISR，60 秒内第一次访问会触发重新生成
- */
-export default function RecentMomentsJSON({ data }: { data: RecentMomentsData }) {
-  // 直接返回纯 JSON，不包裹任何 HTML
+// 这个页面返回最近7天的瞬间
+export default function RecentWeekMomentsJSON({ data }: { data: RecentMomentsData }) {
   return JSON.stringify(data, null, 2);
 }
 
 export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async () => {
   try {
     const allMoments = await getMoments();
-    const recentMoments = allMoments.slice(0, 10).map((m) => ({
-      logo: MOMENTS_CONFIG.logo.type === 'emoji' ? MOMENTS_CONFIG.logo.value : MOMENTS_CONFIG.logo.value,
-      title: m.title,
-      date: m.date,
-      mood: m.mood,
-      content: m.content,
-      images: m.images,
-      videos: m.videos,
-    }));
+    
+    // 获取最近7天的数据
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    const recentMoments = allMoments
+      .filter(moment => new Date(moment.date) > weekAgo)
+      .map(({ id, title, username, date, mood, icon, content, images, videos }) => ({
+        id,
+        title,
+        username,
+        date,
+        mood,
+        icon,
+        content,
+        images,
+        videos
+      }));
 
     const data: RecentMomentsData = {
       success: true,
@@ -54,7 +58,7 @@ export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async
 
     return {
       props: { data },
-      revalidate: 60, // ← ISR：每 60 秒重新生成一次（被动触发）
+      revalidate: 60, // ISR：每 60 秒重新生成一次（被动触发）
     };
   } catch (err) {
     const data: RecentMomentsData = {
@@ -62,7 +66,7 @@ export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async
       data: [],
       count: 0,
       generatedAt: new Date().toISOString(),
-      error: '获取最近瞬间失败',
+      error: '获取最近7天瞬间失败',
       message: err instanceof Error ? err.message : '未知错误',
     };
     return {
