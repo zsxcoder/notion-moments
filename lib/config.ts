@@ -10,7 +10,7 @@ export const MOMENTS_CONFIG = {
       width: 28,
       height: 28,
       borderRadius: '50%',
-      objectFit: 'cover',
+      objectFit: 'cover' as const, // 使用 as const 明确类型
       background: '#f5f5f5',
       marginRight: 6
     }
