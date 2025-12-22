@@ -1,3 +1,4 @@
+// pages/recent-moments.json.tsx
 import { GetStaticProps } from 'next';
 import { getMoments } from '../lib/notion';
 
@@ -17,55 +18,50 @@ interface RecentMomentsData {
   message?: string;
 }
 
-// 这个页面会生成静态JSON文件
+/* 这个页面会被 Next.js 打成
+ *   ├─ .next/server/pages/recent-moments.json
+ *   └─ 访问路径 /recent-moments.json
+ * 由于用了 ISR，60 秒内第一次访问会触发重新生成
+ */
 export default function RecentMomentsJSON({ data }: { data: RecentMomentsData }) {
-  // 返回纯JSON字符串，不包含任何HTML
+  // 直接返回纯 JSON，不包裹任何 HTML
   return JSON.stringify(data, null, 2);
 }
 
 export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async () => {
   try {
-    // 获取所有瞬间
     const allMoments = await getMoments();
-    
-    // 默认取最近10条，并只返回需要的字段
-    const recentMoments = allMoments
-      .slice(0, 10)
-      .map(moment => ({
-        logo: moment.icon,
-        title: moment.title,
-        date: moment.date,
-        mood: moment.mood
-      }));
+
+    const recentMoments = allMoments.slice(0, 10).map((m) => ({
+      logo: m.icon,
+      title: m.title,
+      date: m.date,
+      mood: m.mood,
+    }));
 
     const data: RecentMomentsData = {
       success: true,
       data: recentMoments,
       count: recentMoments.length,
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
     };
 
     return {
-      props: {
-        data
-      }
+      props: { data },
+      revalidate: 60, // ← ISR：每 60 秒重新生成一次（被动触发）
     };
-  } catch (error) {
-    console.error('[recent-moments] 静态生成错误:', error);
-    
+  } catch (err) {
     const data: RecentMomentsData = {
       success: false,
       data: [],
       count: 0,
       generatedAt: new Date().toISOString(),
       error: '获取最近瞬间失败',
-      message: error instanceof Error ? error.message : '未知错误'
+      message: err instanceof Error ? err.message : '未知错误',
     };
-
     return {
-      props: {
-        data
-      }
+      props: { data },
+      revalidate: 60,
     };
   }
-}; 
+};
