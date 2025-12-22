@@ -1,5 +1,6 @@
 import { GetStaticProps } from 'next';
 import { getMoments } from '../lib/notion';
+import { MOMENTS_CONFIG } from '../lib/config';
 
 interface RecentMoment {
   logo: string;
@@ -32,7 +33,7 @@ export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async
     const recentMoments = allMoments
       .slice(0, 10)
       .map(moment => ({
-        logo: moment.icon,
+        logo: MOMENTS_CONFIG.logo.type === 'emoji' ? MOMENTS_CONFIG.logo.value : MOMENTS_CONFIG.logo.value,
         title: moment.title,
         date: moment.date,
         mood: moment.mood
@@ -48,7 +49,9 @@ export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async
     return {
       props: {
         data
-      }
+      },
+      // 添加重验证，每60秒重新生成页面
+      revalidate: 60,
     };
   } catch (error) {
     console.error('[recent-moments] 静态生成错误:', error);
@@ -65,7 +68,9 @@ export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async
     return {
       props: {
         data
-      }
+      },
+      // 添加重验证，每60秒重新生成页面
+      revalidate: 60,
     };
   }
 }; 
