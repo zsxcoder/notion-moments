@@ -30,11 +30,11 @@ export default function RecentWeekMomentsJSON({ data }: { data: RecentMomentsDat
 export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async () => {
   try {
     const allMoments = await getMoments();
-    
+
     // 获取最近7天的数据
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    
+
     const recentMoments = allMoments
       .filter(moment => new Date(moment.date) > weekAgo)
       .map(({ id, title, username, date, mood, icon, content, images, videos }) => ({
@@ -58,7 +58,6 @@ export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async
 
     return {
       props: { data },
-      revalidate: 60, // ISR：每 60 秒重新生成一次（被动触发）
     };
   } catch (err) {
     const data: RecentMomentsData = {
@@ -71,7 +70,6 @@ export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async
     };
     return {
       props: { data },
-      revalidate: 60,
     };
   }
 };

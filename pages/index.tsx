@@ -1105,8 +1105,6 @@ export const getStaticProps: GetStaticProps = async () => {
     props: {
       moments,
     },
-    // 添加重验证，每60秒重新生成页面
-    revalidate: 60,
   };
 };
 

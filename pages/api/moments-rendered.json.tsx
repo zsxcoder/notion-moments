@@ -35,7 +35,7 @@ export default function RenderedMomentsJSON({ data }: { data: RenderedMomentsDat
 export const getStaticProps: GetStaticProps<{ data: RenderedMomentsData }> = async () => {
   try {
     const allMoments = await getMoments();
-    
+
     // 为每个 moment 处理 Markdown 内容
     const processedMoments = allMoments.map(moment => {
       const { content } = moment;
@@ -49,7 +49,7 @@ export const getStaticProps: GetStaticProps<{ data: RenderedMomentsData }> = asy
         } : undefined
       };
     });
-    
+
     const data: RenderedMomentsData = {
       success: true,
       data: processedMoments,
@@ -59,7 +59,6 @@ export const getStaticProps: GetStaticProps<{ data: RenderedMomentsData }> = asy
 
     return {
       props: { data },
-      revalidate: 60, // ISR：每 60 秒重新生成一次（被动触发）
     };
   } catch (err) {
     const data: RenderedMomentsData = {
@@ -72,7 +71,6 @@ export const getStaticProps: GetStaticProps<{ data: RenderedMomentsData }> = asy
     };
     return {
       props: { data },
-      revalidate: 60,
     };
   }
 };

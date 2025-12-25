@@ -54,7 +54,6 @@ export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async
 
     return {
       props: { data },
-      revalidate: 60, // ← ISR：每 60 秒重新生成一次（被动触发）
     };
   } catch (err) {
     const data: RecentMomentsData = {
@@ -67,7 +66,6 @@ export const getStaticProps: GetStaticProps<{ data: RecentMomentsData }> = async
     };
     return {
       props: { data },
-      revalidate: 60,
     };
   }
 };

@@ -42,7 +42,7 @@ export default function AllMomentsJSON({ data }: { data: AllMomentsData }) {
 export const getStaticProps: GetStaticProps<{ data: AllMomentsData }> = async () => {
   try {
     const allMoments = await getMoments();
-    
+
     // 为每个 moment 添加 Markdown 相关信息
     const processedMoments = allMoments.map(moment => {
       const { content } = moment;
@@ -53,7 +53,7 @@ export const getStaticProps: GetStaticProps<{ data: AllMomentsData }> = async ()
         contentElements: content ? { ...hasMarkdownElements(content), videos: !!(moment.videos && moment.videos.length > 0) } : {}
       };
     });
-    
+
     const data: AllMomentsData = {
       success: true,
       data: processedMoments,
@@ -63,7 +63,6 @@ export const getStaticProps: GetStaticProps<{ data: AllMomentsData }> = async ()
 
     return {
       props: { data },
-      revalidate: 60, // ISR：每 60 秒重新生成一次（被动触发）
     };
   } catch (err) {
     const data: AllMomentsData = {
@@ -76,7 +75,6 @@ export const getStaticProps: GetStaticProps<{ data: AllMomentsData }> = async ()
     };
     return {
       props: { data },
-      revalidate: 60,
     };
   }
 };
